@@ -5,10 +5,14 @@ import noise
 import sys
 import matplotlib.pyplot as plt
 
-filename = sys.argv[1]
+if len(sys.argv) > 1:
+    filename = sys.argv[1]
+else:
+    filename = 'dem'
 
 default_types = {
     'dem': '<f8',
+    'dem_new': '<f8',
     'dirs': '<u1',
     'rivers': '<f8',
     'lakes': '<f8',
@@ -24,7 +28,7 @@ else:
 
 islog = len(sys.argv) > 2 and sys.argv[-1] == 'log'
 
-with open(sys.argv[1], 'rb') as f:
+with open(filename, 'rb') as f:
     size_raw = f.read(4)
     size = tuple(np.frombuffer(size_raw, dtype='<u2'))
     data = np.frombuffer(f.read(), dtype=data_dtype).reshape(size)
