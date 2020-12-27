@@ -17,6 +17,7 @@ public:
 
 	void flow();
 	void accumulate();
+	void erode(const double time, const double K=1.0f, const double m=0.5f, const double sea_level=0.0f);
 
 	const std::size_t width;
 	const std::size_t height;
@@ -27,5 +28,6 @@ private:
 	size_t* dirs_ref;
 	uint8_t* ndonors;
 	uint32_t* basin_id;
+	double* erosion_time;
 	PcgRandom* pcg;
 };

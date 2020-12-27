@@ -20,6 +20,7 @@ RiverMapper::RiverMapper(Map<double>* dem_map) : width(dem_map->width), height(d
 	dirs = new uint8_t[size];
 	ndonors = new uint8_t[size];
 	basin_id = new uint32_t[size];
+	erosion_time = new double[size];
 	pcg = new PcgRandom();
 }
 
@@ -31,15 +32,24 @@ RiverMapper::~RiverMapper()
 	delete[] dirs;
 	delete[] ndonors;
 	delete[] basin_id;
+	delete[] erosion_time;
 	delete[] pcg;
 }
 
-inline double diff_or_zero(double a, double b) {
+inline double diff_or_zero(const double a, const double b) {
 	return (a > b) ? a-b : 0;
 }
 
-inline double max(double a, double b) {
+inline double min(const double a, const double b) {
+	return (a < b) ? a : b;
+}
+
+inline double max(const double a, const double b) {
 	return (a > b) ? a : b;
+}
+
+inline double max3(const double a, const double b, const double c) {
+	return (a > b) ? ((a > c) ? a : c) : ((b > c) ? b : c);
 }
 
 inline int RiverMapper::flow_local(const double zdiffs[], const int nz)
@@ -601,4 +611,39 @@ void RiverMapper::accumulate()
 			}
 		}
 	}
+}
+
+void RiverMapper::erode(const double time, const double K, const double m, const double sea_level) {
+	cout << "Eroding landscape..." << endl;
+	clock_t t0 = clock();
+
+	for (size_t i=1; i<size; i++) {
+		erosion_time[i] = 1.0f / (K * std::pow(water[i], m));
+		lakes[i] = max3(dem[i], lakes[i], sea_level); 
+	}
+
+	for (size_t i=1; i<size; i++) {
+		size_t iw = i;
+		double remaining = time;
+		double new_elev;
+		while (true) {
+			if (dirs_ref[iw] == SIZE_MAX) {
+				new_elev = lakes[iw];
+				break;
+			}
+			if (remaining <= erosion_time[iw]) {
+				double c = remaining / erosion_time[iw];
+				new_elev = (1-c) * lakes[iw] + c * lakes[dirs_ref[iw]];
+				break;
+			}
+
+			remaining -= erosion_time[iw];
+			iw = dirs_ref[iw];
+		}
+
+		dem[i] = min(dem[i], new_elev);
+	}
+
+	clock_t t1 = clock();
+	cout << "\tCompleted in " << disptime(t1-t0) << " s" << endl;
 }
